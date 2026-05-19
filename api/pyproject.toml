@@ -1,0 +1,31 @@
+[project]
+name = "__PYTHON_PACKAGE__"
+version = "0.1.0"
+description = "FastAPI backend for __PROJECT_TITLE__"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.34.0",
+    "pydantic>=2.0",
+]
+
+[tool.uv]
+package = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/__PYTHON_PACKAGE__"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "httpx>=0.27.0",
+    "ruff>=0.6",
+    "pyright>=1.1.380",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

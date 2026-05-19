@@ -1,0 +1,39 @@
+name: Main
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-prod-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # Permissions must live at the JOB level for the reusable workflow's
+    # nested jobs to inherit them. Workflow-level doesn't propagate.
+    permissions:
+      id-token: write
+      contents: read
+    uses: hallo-theo/.github/.github/workflows/python-ts-deploy.yml@main
+    with:
+      gcp-project-id:         __GCP_PROJECT__
+      gcp-project-number:     "__GCP_PROJECT_NUMBER__"
+      gcp-region:             __GCP_REGION__
+      wif-provider-name:      __PROJECT_SLUG__
+      deploy-sa:              __PROJECT_SLUG__-deploy@__GCP_PROJECT__.iam.gserviceaccount.com
+      cloud-run-service:      __CLOUD_RUN_SERVICE__
+      artifact-registry-repo: __ARTIFACT_REGISTRY_REPO__
+      image-name:             api
+      dockerfile:             api/Dockerfile
+      docker-context:         .
+      api-path:               api
+      api-package:            __PYTHON_PACKAGE__
+      app-path:               app/__PROJECT_SLUG__.raw_app
+      wmill-workspace:        __WMILL_WORKSPACE__
+      wmill-app-path:         __WMILL_APP_PATH__
+      wmill-base-url:         __WMILL_BASE_URL__
+    # No `secrets:` block. The Windmill CI token lives in GCP Secret Manager
+    # (hallotheo-wmill-token) and is fetched at runtime by the deploy SA via
+    # the WIF id-token — see hallo-theo/.github README.

@@ -1,0 +1,45 @@
+# __PROJECT_TITLE__
+
+FastAPI backend on Cloud Run + Windmill raw_app frontend, scaffolded via the hallo theo `new-app` skill.
+
+## Local dev
+
+```bash
+make install   # uv sync + npm install
+cp .env.example .env.general && $EDITOR .env.general   # fill in FRONTEND_SERVICE_SECRET
+make dev       # FastAPI :8000 + Vite :5173
+```
+
+Open http://localhost:5173.
+
+## Deployment
+
+CI/CD is wired via `hallo-theo/.github`:
+- PR opened → `pr.yml` runs lint + typecheck + tests + docker build sanity
+- Merged to main → `main.yml` builds + deploys to Cloud Run + pushes raw_app to Windmill
+
+For the deploy workflow to succeed, the following must exist:
+- WIF provider + deploy SA in `__GCP_PROJECT__` (the `new-app` skill creates these)
+- `WMILL_TOKEN` org-level GitHub secret (the `new-app` skill sets this)
+- The Cloud Run service `__CLOUD_RUN_SERVICE__` must already exist — the deploy SA has `roles/run.developer` which can *update* services but not create them. First-time setup: `gcloud run deploy __CLOUD_RUN_SERVICE__ --image=<some-bootstrap-image> --region=__GCP_REGION__ --project=__GCP_PROJECT__` once. After that, CI handles it.
+
+## What this template doesn't include
+
+Kept intentionally minimum:
+
+- **No Postgres / DB scaffolding.** Add `psycopg` + a `db.py` + `migrations/` + `docker-compose.yml` if you need persistence. See `hallo-theo/object-details` for the canonical pattern.
+- **No CRUD endpoints, audit log, exports, PDF generation.** Those are object-details patterns — copy them when needed.
+- **No terraform.** Add per-app once you know what infra you actually need.
+
+## Reference patterns
+
+When you need something this template doesn't include:
+
+| Pattern | Reference |
+|---|---|
+| Postgres + migrations + dev modes | [`hallo-theo/object-details`](https://github.com/hallo-theo/object-details) |
+| Audit log / event sourcing | object-details `endpoints/events.py` |
+| Excel export via openpyxl | object-details `endpoints/exports.py` |
+| ReportLab PDF generation | object-details `services/pdf_generator.py` |
+| Multi-section accordion UI | object-details `components/ObjectDetailPage.tsx` |
+| Terraform: Cloud SQL + VPC + Cloud Run | object-details `terraform/` |

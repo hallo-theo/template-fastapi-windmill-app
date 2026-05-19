@@ -1,0 +1,18 @@
+name: PR
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    uses: hallo-theo/.github/.github/workflows/python-ts-pr.yml@main
+    with:
+      api-path: api
+      api-package: __PYTHON_PACKAGE__
+      app-path: app/__PROJECT_SLUG__.raw_app
+      dockerfile: api/Dockerfile

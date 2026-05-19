@@ -1,0 +1,7 @@
+# Windmill full-code app manifest.
+# Bundled by `wmill app push`; src/ holds the React source, backend/ holds
+# the TypeScript runnables the frontend invokes via `backend.call_api(...)`.
+#
+# execution_mode: viewer — each viewer runs backend runnables as themselves.
+execution_mode: viewer
+summary: __PROJECT_TITLE__
