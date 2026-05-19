@@ -11,6 +11,9 @@ concurrency:
 
 jobs:
   deploy:
+    # Skip on the template repo itself — placeholder values in `with:` aren't
+    # real resources. Adopters' repos have a different name and run normally.
+    if: github.repository != 'hallo-theo/template-fastapi-windmill-app'
     # Permissions must live at the JOB level for the reusable workflow's
     # nested jobs to inherit them. Workflow-level doesn't propagate.
     permissions:

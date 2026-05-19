@@ -10,6 +10,10 @@ concurrency:
 
 jobs:
   ci:
+    # Skip on the template repo itself — its files contain __PLACEHOLDER__
+    # tokens that aren't valid identifiers, so lint/test would always fail.
+    # Adopters' repos have a different name and run normally.
+    if: github.repository != 'hallo-theo/template-fastapi-windmill-app'
     uses: hallo-theo/.github/.github/workflows/python-ts-pr.yml@main
     with:
       api-path: api
