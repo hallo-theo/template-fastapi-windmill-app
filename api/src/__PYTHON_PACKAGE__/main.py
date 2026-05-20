@@ -19,9 +19,9 @@ app = FastAPI(
 )
 
 # Comma-separated origins, fall back to Vite dev server.
-origins = [
-    o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "").split(",") if o.strip()
-] or ["http://localhost:5173"]
+origins = [o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "").split(",") if o.strip()] or [
+    "http://localhost:5173"
+]
 
 app.add_middleware(
     CORSMiddleware,

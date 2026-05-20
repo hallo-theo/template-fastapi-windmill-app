@@ -54,12 +54,8 @@ async def service_secret_middleware(request: Request, call_next):
     if not hmac.compare_digest(provided, _FRONTEND_SECRET):
         return _deny(request, reason="frontend_secret_mismatch")
 
-    request.state.windmill_user = (
-        request.headers.get("x-windmill-user", "").strip() or NO_AUTHOR
-    )
-    request.state.windmill_username = (
-        request.headers.get("x-windmill-username", "").strip() or None
-    )
+    request.state.windmill_user = request.headers.get("x-windmill-user", "").strip() or NO_AUTHOR
+    request.state.windmill_username = request.headers.get("x-windmill-username", "").strip() or None
     return await call_next(request)
 
 
