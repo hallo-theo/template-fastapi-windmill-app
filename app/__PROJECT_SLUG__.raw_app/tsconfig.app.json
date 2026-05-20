@@ -21,5 +21,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "wmill.ts"]
+  "include": ["src", "wmill.ts", "index.tsx"]
 }
