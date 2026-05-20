@@ -34,6 +34,10 @@ if [[ ! "$SLUG" =~ ^[a-z][a-z0-9-]*$ ]]; then
   echo "✗ Slug must match ^[a-z][a-z0-9-]*\$ (lowercase + digits + hyphens, starting with a letter)" >&2
   exit 1
 fi
+if [[ ${#SLUG} -gt 23 ]]; then
+  echo "✗ Slug is ${#SLUG} chars — max 23 (so the GCP service account '<slug>-deploy' fits in the 30-char limit)" >&2
+  exit 1
+fi
 
 # ── 2. Derivations + org defaults ─────────────────────────────────────
 SLUG_SNAKE="${SLUG//-/_}"
@@ -157,6 +161,14 @@ Next manual steps:
     --project=\${PROJECT} \\
     --member="serviceAccount:\${REPO}-deploy@\${PROJECT}.iam.gserviceaccount.com" \\
     --role=roles/secretmanager.secretAccessor
+
+  # 1b. Create the Artifact Registry repo for this app's images.
+  #     deploy SA's artifactregistry.writer role lets it push, not create.
+  gcloud artifacts repositories create \${REPO} \\
+    --repository-format=docker \\
+    --location=$GCP_REGION \\
+    --project=\${PROJECT} \\
+    --description="Container images for \${REPO}"
 
   # 2. Bootstrap the Cloud Run service so CI can update it.
   gcloud run deploy $CLOUD_RUN_SERVICE \\
