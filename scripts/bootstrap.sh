@@ -118,13 +118,17 @@ for k, v in subs.items():
 p.write_text(text, encoding='utf-8')
 PYEOF
 
+# Exclude this script itself from substitution: bash reads scripts lazily from
+# disk, so if bootstrap.sh is substituted, the rename step below would see the
+# slug value instead of __PROJECT_SLUG__ and the if-condition would be false.
 while IFS= read -r -d '' file; do
+  [[ "$file" == "scripts/bootstrap.sh" || "$file" == "./scripts/bootstrap.sh" ]] && continue
   python3 "$_PY_SUBS" "$file"
 done < <(git ls-files -z 2>/dev/null || find . -type f -not -path './.git/*' -print0)
 
 # ── 5a. Rename path segments containing placeholders ─────────────────
-# api/src/__PYTHON_PACKAGE__/  →  api/src/<python_package>/
-# app/__PROJECT_SLUG__.raw_app/ → app/<slug>.raw_app/
+# bootstrap.sh was excluded from substitution above so bash still reads the
+# original __PROJECT_SLUG__ / __PYTHON_PACKAGE__ literals here.
 if [[ -d "api/src/__PYTHON_PACKAGE__" ]]; then
   mv "api/src/__PYTHON_PACKAGE__" "api/src/$PYTHON_PACKAGE"
 fi
