@@ -15,17 +15,26 @@
 #   6. Self-deletes (this script).
 #
 # Run once after `gh repo create --template hallo-theo/template-fastapi-windmill-app`:
-#   bash scripts/bootstrap.sh
+#   bash scripts/bootstrap.sh            # interactive
+#   bash scripts/bootstrap.sh my-app     # non-interactive slug
+#   bash scripts/bootstrap.sh my-app -y  # skip confirmation prompt (for automation)
 #
 # For a fully automated version (skill drives gcloud + Windmill setup too),
 # use Claude Code's `/new-app` skill from the builder-tools plugin instead.
 
 set -euo pipefail
 
-# ── 1. Slug ────────────────────────────────────────────────────────────
-if [[ -n "${1:-}" ]]; then
-  SLUG="$1"
-else
+# ── 1. Slug + flags ────────────────────────────────────────────────────
+YES=0
+SLUG=""
+for arg in "$@"; do
+  case "$arg" in
+    -y|--yes) YES=1 ;;
+    *) [[ -z "$SLUG" ]] && SLUG="$arg" ;;
+  esac
+done
+
+if [[ -z "$SLUG" ]]; then
   default_slug="$(basename "$(pwd)")"
   read -r -p "App slug (kebab-case) [$default_slug]: " SLUG
   SLUG="${SLUG:-$default_slug}"
@@ -71,17 +80,25 @@ About to apply this substitution map:
   WMILL_BASE_URL          $WMILL_BASE_URL
 
 EOM
-read -r -p "Proceed? [y/N] " confirm
-[[ "$confirm" =~ ^[Yy]$ ]] || { echo "Aborted."; exit 1; }
+
+if [[ "$YES" -eq 0 ]]; then
+  read -r -p "Proceed? [y/N] " confirm
+  [[ "$confirm" =~ ^[Yy]$ ]] || { echo "Aborted."; exit 1; }
+fi
 
 # ── 4. Substitute every __PLACEHOLDER__ in every tracked file ────────
-substitute() {
-  local file="$1"
-  # macOS sed needs '' after -i; GNU sed is fine with just -i. Use a portable temp file.
-  python3 - "$file" <<PY
+# Write the Python substituter to a temp file to avoid heredoc/pipe stdin
+# conflicts when bootstrap.sh is invoked non-interactively (e.g. from a skill).
+_PY_SUBS="$(mktemp /tmp/bootstrap_subs_XXXXXX.py)"
+trap 'rm -f "$_PY_SUBS"' EXIT
+
+cat > "$_PY_SUBS" <<PYEOF
 import sys, pathlib
 p = pathlib.Path(sys.argv[1])
-text = p.read_text(encoding='utf-8')
+try:
+    text = p.read_text(encoding='utf-8')
+except Exception:
+    sys.exit(0)  # skip binary files
 subs = {
     "__PROJECT_SLUG__":          "$SLUG",
     "__PROJECT_SLUG_SNAKE__":    "$SLUG_SNAKE",
@@ -99,11 +116,10 @@ subs = {
 for k, v in subs.items():
     text = text.replace(k, v)
 p.write_text(text, encoding='utf-8')
-PY
-}
+PYEOF
 
 while IFS= read -r -d '' file; do
-  substitute "$file"
+  python3 "$_PY_SUBS" "$file"
 done < <(git ls-files -z 2>/dev/null || find . -type f -not -path './.git/*' -print0)
 
 # ── 5a. Rename path segments containing placeholders ─────────────────
