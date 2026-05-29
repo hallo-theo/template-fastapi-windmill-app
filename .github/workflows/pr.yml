@@ -19,4 +19,5 @@ jobs:
       api-path: api
       api-package: __PYTHON_PACKAGE__
       app-path: app/__PROJECT_SLUG__.raw_app
+      terraform-path: terraform
       dockerfile: api/Dockerfile
