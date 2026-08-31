@@ -36,6 +36,36 @@ Every non-`/healthz` request must carry `X-Service-Secret` matching `FRONTEND_SE
 
 `X-Windmill-User` and `X-Windmill-Username` headers carry identity from the trusted server-side context to the API. In prod, `backend/call_api.ts` reads `WM_USERNAME` — the only env var that reliably rebinds per viewer in raw_apps. **Don't use `WM_EMAIL` or `WM_TOKEN`**: both are deployer-scoped.
 
+## Verifying your work
+
+```
+make verify        # lint-api + test-api + lint-frontend + test-frontend
+```
+
+**One command.** Run it before opening a PR and paste its output into the PR
+body — the claim is not that you ran it, the claim is what it printed.
+
+## SDLC artifacts
+
+This repo follows the org's six-stage SDLC
+([`hallo-theo/.github` → `sdlc/`](https://github.com/hallo-theo/.github/tree/main/sdlc)).
+
+| Stage | Artifact | Here |
+|---|---|---|
+| 1 · Plan | `intent.md` | `intent/<slug>.md` |
+| 2 · Design | `spec.md` | `spec/<slug>.md` |
+| 3 · Build | `plan.md` | `plan/<slug>.md`, SHA-pinned in the PR |
+| 4 · Test | feedback loop | `make verify` |
+| 5 · Deploy | review findings | PR comments, governed by `REVIEW.md` |
+| 6 · Maintain | incident record | `lessons.md` |
+
+Each folder's README states what its artifact must contain. `intent/` and
+`spec/` must contain **no personal data** — no tenant or owner names,
+addresses, IBANs, emails or phone numbers, including in pasted text. Git
+history is immutable and is copied into every clone and every agent session.
+
+The single required check to merge is `gates-passed`.
+
 ## CI/CD
 
 PR checks: `.github/workflows/pr.yml` delegates to `hallo-theo/.github/.github/workflows/python-ts-pr.yml`. Deploy: `main.yml` delegates to `python-ts-deploy.yml`. When the shared workflows need to change, edit them in `hallo-theo/.github` once and every adopting repo picks them up on the next run.

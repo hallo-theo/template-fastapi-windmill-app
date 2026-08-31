@@ -1,9 +1,18 @@
-.PHONY: install dev dev-api dev-frontend \
-        test-api test-frontend lint-api \
+.PHONY: verify install dev dev-api dev-frontend \
+        test-api test-frontend lint-api lint-frontend \
         build cloud-build deploy-api deploy-windmill deploy-app
 
 WMILL_TARGET           ?= __WMILL_WORKSPACE__
 FRONTEND_WINDMILL_PATH ?= __WMILL_APP_PATH__
+
+# `make verify` is THE feedback loop (SDLC Stage 4). One command that answers
+# "is my work correct?" — the same checks CI runs, in the same order.
+#
+# Keep it as one target. An agent given four separate entry points has to guess
+# which one means "done", and it will guess wrong. Paste this command's output
+# into the PR: the claim is not that you ran it, the claim is what it printed.
+verify: lint-api test-api lint-frontend test-frontend
+	@echo "✓ verify passed"
 
 install:
 	uv sync
@@ -36,6 +45,13 @@ lint-api:
 	uv run ruff check api/src
 	uv run ruff format --check api/src
 	uv run pyright api/src
+
+# tsc mirrors what the reusable CI runs. eslint is deliberately stricter here
+# than CI: the shared workflow does not run it yet, because switching it on
+# there would fail existing adopters' code. Catch it locally in the meantime.
+lint-frontend:
+	cd app/__PROJECT_SLUG__.raw_app && npx tsc --noEmit
+	cd app/__PROJECT_SLUG__.raw_app && npm run lint
 
 build:
 	docker build -f api/Dockerfile -t __PROJECT_SLUG__-api:dev .
