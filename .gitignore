@@ -22,3 +22,7 @@ data/
 # Editors
 .idea/
 .vscode/
+
+# Terraform
+.terraform/
+*.tfvars.backup

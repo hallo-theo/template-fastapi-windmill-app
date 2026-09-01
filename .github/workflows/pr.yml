@@ -21,3 +21,38 @@ jobs:
       app-path: app/__PROJECT_SLUG__.raw_app
       terraform-path: terraform
       dockerfile: api/Dockerfile
+
+  # The one required check for this repo — the whole org requires this same
+  # name, which is what lets one org-level ruleset gate every repository.
+  # Full rationale: hallo-theo/.github → sdlc/README.md.
+  #
+  # If you add a job to this file, add it to `needs` too, or it gates nothing.
+  # Never add `paths:` filters to the `pull_request:` trigger above — the
+  # workflow would not run, this check would never report, and every PR would
+  # sit on "Expected — waiting for status" forever.
+  gates-passed:
+    needs: [ci]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Assert every gate ended in success or skipped
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          # `skipped` passes — that is the paths-filter doing its job, and a
+          # component whose code was untouched has nothing to prove. On the
+          # template repo itself `ci` is skipped by design, so this passes.
+          # `cancelled` FAILS: the run was interrupted, so the gate never
+          # actually ran and must not be reported as green.
+          echo "$NEEDS" | jq -r 'to_entries[] | "\(.value.result)\t\(.key)"' | sort
+          bad="$(echo "$NEEDS" | jq -r '
+            to_entries[]
+            | select(.value.result != "success" and .value.result != "skipped")
+            | .key')"
+          if [ -n "$bad" ]; then
+            echo "::error::Gate failed. Jobs not in {success, skipped}:"
+            echo "$bad" | while read -r j; do echo "::error::  $j"; done
+            exit 1
+          fi
+          echo "All gates passed."
