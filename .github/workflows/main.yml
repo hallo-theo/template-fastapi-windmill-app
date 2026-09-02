@@ -10,10 +10,31 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # The very first push in a repo created from this template is GitHub's own
+  # template copy — placeholders still present, pyproject.toml not even valid
+  # TOML. Deploying that is impossible, and the guaranteed red run it produces
+  # teaches people to ignore red. Gate deploy on bootstrap having happened.
+  bootstrapped:
+    if: github.repository != 'hallo-theo/template-fastapi-windmill-app'
+    runs-on: ubuntu-latest
+    outputs:
+      ok: ${{ steps.check.outputs.ok }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: check
+        run: |
+          if grep -q "__PROJECT_SLUG__" pyproject.toml; then
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "Pre-bootstrap template copy — skipping deploy (expected on the initial commit)."
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
   deploy:
+    needs: bootstrapped
     # Skip on the template repo itself — placeholder values in `with:` aren't
     # real resources. Adopters' repos have a different name and run normally.
-    if: github.repository != 'hallo-theo/template-fastapi-windmill-app'
+    if: github.repository != 'hallo-theo/template-fastapi-windmill-app' && needs.bootstrapped.outputs.ok == 'true'
     # Permissions must live at the JOB level for the reusable workflow's
     # nested jobs to inherit them. Workflow-level doesn't propagate.
     permissions:
