@@ -65,3 +65,7 @@ jobs:
       contents: write
       pull-requests: write
     uses: hallo-theo/.github/.github/workflows/auto-merge-eligible.yml@main
+    secrets:
+      # Armer identity — merges as theo-pr-reviewer[bot] so push workflows
+      # (deploy!) fire; github.token merges are skipped by GitHub.
+      PR_REVIEWER_PRIVATE_KEY: ${{ secrets.PR_REVIEWER_PRIVATE_KEY }}
