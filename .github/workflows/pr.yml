@@ -56,3 +56,12 @@ jobs:
             exit 1
           fi
           echo "All gates passed."
+
+  # Automerge default-on (pitch-owner decision 2026-09-03): arms auto-merge on
+  # every PR; it merges when gates-passed + CI are green. Carve-outs live in
+  # the reusable workflow (untrusted-origin branches; .github/** edits).
+  auto-merge:
+    permissions:
+      contents: write
+      pull-requests: write
+    uses: hallo-theo/.github/.github/workflows/auto-merge-eligible.yml@main
