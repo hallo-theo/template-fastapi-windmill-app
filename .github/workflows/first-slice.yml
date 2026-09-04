@@ -104,7 +104,10 @@ jobs:
 
             Work strictly in this single session — no sub-agents, no waiting.
 
-            1. Read AGENTS.md, then intent/${{ github.event.client_payload.slug }}.md.
+            1. Read AGENTS.md and docs/ORG.md (company context: what
+               hallo theo does, the platforms and repos that already exist —
+               extend those rather than reinventing them), then
+               intent/${{ github.event.client_payload.slug }}.md.
             2. Create branch
                `front-door/first-slice-${{ github.event.client_payload.request_id }}`
                (exactly — the prefix marks untrusted origin and is what keeps
