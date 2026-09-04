@@ -3,11 +3,15 @@
 #
 # SECURITY SHAPE (learned from the feedback-implement drift incident):
 #   - The dispatch payload carries IDs ONLY (request_id, slug). The
-#     requester's free text lives in intent/<slug>.md, already fenced between
-#     <<<UNTRUSTED_INTENT markers at freeze time — the agent reads it from the
-#     repo as data, never from an interpolated payload.
-#   - Git/PR operations use a theo-pr-reviewer App token (org var/secret) —
-#     newborn repos have it from birth once the org-wide scoping is on.
+#     requester's free text lives in intent/<slug>.md, fenced between
+#     <<<UNTRUSTED_INTENT markers at freeze time by the front-door API
+#     (front_door_api/freeze.py::render_intent_md) and copied verbatim into
+#     the newborn repo by the /front-door skill. The fence-guard step below
+#     ENFORCES this: missing markers fail the job before the agent runs.
+#   - Git/PR operations use a theo-pr-reviewer App token (org var/secret).
+#     The App is installed org-wide on all repos with contents: write +
+#     pull requests: write (verified via the org installations API), so
+#     newborn repos have it from birth.
 #   - Branch prefix front-door/* is an UNTRUSTED ORIGIN: auto-merge-eligible
 #     never arms it and claude-review's carve-outs hold it — the first-slice
 #     PR always waits for a human, by design (trust ladder rung 0).
@@ -33,6 +37,21 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+
+      - name: Fence guard — refuse unfenced intent (fail closed)
+        env:
+          SLUG: ${{ github.event.client_payload.slug }}
+        run: |
+          set -euo pipefail
+          FILE="intent/${SLUG}.md"
+          if [ ! -f "$FILE" ]; then
+            echo "::error::$FILE missing — dispatch arrived without a frozen intent file"
+            exit 1
+          fi
+          if ! grep -qF '<<<UNTRUSTED_INTENT' "$FILE" || ! grep -qF 'UNTRUSTED_INTENT>>>' "$FILE"; then
+            echo "::error::$FILE has no <<<UNTRUSTED_INTENT fence — the injection defense depends on it (written by front-door freeze.py::render_intent_md). Refusing to run the agent."
+            exit 1
+          fi
 
       - name: Mint agent token (theo-pr-reviewer)
         id: agent
