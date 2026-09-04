@@ -8,12 +8,13 @@
 #     (front_door_api/freeze.py::render_intent_md) and copied verbatim into
 #     the newborn repo by the /front-door skill. The fence-guard step below
 #     ENFORCES this: missing markers fail the job before the agent runs.
-#   - Git/PR operations use a feedback-hub-agent App token — the same
-#     author identity feedback-implement PRs use. It must NOT be
-#     theo-pr-reviewer: that App reviews this PR, and GitHub rejects
-#     APPROVE/REQUEST_CHANGES reviews from the PR's own author. Both Apps
-#     are installed org-wide (all repos, contents + pull requests: RW),
-#     so newborn repos have them from birth.
+#   - Git/PR operations use the org's SDLC agent App token (org var
+#     SDLC_AGENT_APP_ID + org secret SDLC_AGENT_PRIVATE_KEY). It must NOT
+#     be theo-pr-reviewer: that App reviews this PR, and GitHub rejects
+#     APPROVE/REQUEST_CHANGES reviews from the PR's own author. The agent
+#     App is the AI-Native SDLC's *author* identity (first-slice today,
+#     orchestrator subagent PRs later); theo-pr-reviewer is its *judge*.
+#     Feedback Hub's App stays in its own product lane.
 #   - Branch prefix front-door/* is an UNTRUSTED ORIGIN: auto-merge-eligible
 #     never arms it and claude-review's carve-outs hold it — the first-slice
 #     PR always waits for a human, by design (trust ladder rung 0).
@@ -64,14 +65,14 @@ jobs:
             exit 1
           fi
 
-      # feedback-hub-agent, NOT theo-pr-reviewer: the PR author must be a
+      # The SDLC agent App, NOT theo-pr-reviewer: the PR author must be a
       # different identity than the reviewer or GitHub rejects the review.
-      - name: Mint agent token (feedback-hub-agent)
+      - name: Mint agent token (SDLC agent App)
         id: agent
         uses: actions/create-github-app-token@v1
         with:
-          app-id: "4673455"
-          private-key: ${{ secrets.FEEDBACK_HUB_APP_PRIVATE_KEY }}
+          app-id: ${{ vars.SDLC_AGENT_APP_ID }}
+          private-key: ${{ secrets.SDLC_AGENT_PRIVATE_KEY }}
 
       - name: Build the first slice
         uses: anthropics/claude-code-action@v1
