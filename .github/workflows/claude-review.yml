@@ -13,4 +13,6 @@ jobs:
     uses: hallo-theo/.github/.github/workflows/claude-review.yml@main
     secrets:
       PR_REVIEWER_PRIVATE_KEY: ${{ secrets.PR_REVIEWER_PRIVATE_KEY }}
-      LITELLM_API_KEY: ${{ secrets.LITELLM_API_KEY }}
+      # CI-agent spend rides its own LiteLLM virtual key (ci-agents) so agent
+      # cost is attributable separately from product LLM calls (standard §8).
+      LITELLM_API_KEY: ${{ secrets.LITELLM_CI_AGENTS_KEY }}
