@@ -8,10 +8,12 @@
 #     (front_door_api/freeze.py::render_intent_md) and copied verbatim into
 #     the newborn repo by the /front-door skill. The fence-guard step below
 #     ENFORCES this: missing markers fail the job before the agent runs.
-#   - Git/PR operations use a theo-pr-reviewer App token (org var/secret).
-#     The App is installed org-wide on all repos with contents: write +
-#     pull requests: write (verified via the org installations API), so
-#     newborn repos have it from birth.
+#   - Git/PR operations use a feedback-hub-agent App token — the same
+#     author identity feedback-implement PRs use. It must NOT be
+#     theo-pr-reviewer: that App reviews this PR, and GitHub rejects
+#     APPROVE/REQUEST_CHANGES reviews from the PR's own author. Both Apps
+#     are installed org-wide (all repos, contents + pull requests: RW),
+#     so newborn repos have them from birth.
 #   - Branch prefix front-door/* is an UNTRUSTED ORIGIN: auto-merge-eligible
 #     never arms it and claude-review's carve-outs hold it — the first-slice
 #     PR always waits for a human, by design (trust ladder rung 0).
@@ -22,9 +24,10 @@ on:
   repository_dispatch:
     types: [front-door-first-slice]
 
+# GITHUB_TOKEN only checks out the repo; all git/PR writes go through the
+# minted App token below.
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 concurrency:
   group: first-slice-${{ github.event.client_payload.request_id }}
@@ -38,11 +41,19 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Fence guard — refuse unfenced intent (fail closed)
+      - name: Payload + fence guard (fail closed)
         env:
           SLUG: ${{ github.event.client_payload.slug }}
+          REQUEST_ID: ${{ github.event.client_payload.request_id }}
         run: |
           set -euo pipefail
+          # Shapes pinned to what front-door actually freezes: SLUG_RE in
+          # freeze.py, request_id = uuid4().hex[:12] in store.py. Refuse
+          # anything else before it reaches a path, branch name, or prompt.
+          echo "$SLUG" | grep -Eq '^[a-z][a-z0-9-]{0,22}$' \
+            || { echo "::error::slug '$SLUG' does not match the frozen front-door shape"; exit 1; }
+          echo "$REQUEST_ID" | grep -Eq '^[0-9a-f]{12}$' \
+            || { echo "::error::request_id '$REQUEST_ID' does not match the frozen front-door shape"; exit 1; }
           FILE="intent/${SLUG}.md"
           if [ ! -f "$FILE" ]; then
             echo "::error::$FILE missing — dispatch arrived without a frozen intent file"
@@ -53,12 +64,14 @@ jobs:
             exit 1
           fi
 
-      - name: Mint agent token (theo-pr-reviewer)
+      # feedback-hub-agent, NOT theo-pr-reviewer: the PR author must be a
+      # different identity than the reviewer or GitHub rejects the review.
+      - name: Mint agent token (feedback-hub-agent)
         id: agent
         uses: actions/create-github-app-token@v1
         with:
-          app-id: ${{ vars.PR_REVIEWER_APP_ID }}
-          private-key: ${{ secrets.PR_REVIEWER_PRIVATE_KEY }}
+          app-id: "4673455"
+          private-key: ${{ secrets.FEEDBACK_HUB_APP_PRIVATE_KEY }}
 
       - name: Build the first slice
         uses: anthropics/claude-code-action@v1
