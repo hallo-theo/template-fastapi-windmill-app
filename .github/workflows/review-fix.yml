@@ -37,6 +37,24 @@ jobs:
       github.event.pull_request.state == 'open'
     runs-on: ubuntu-latest
     steps:
+      # The review body is derived from untrusted-origin content (front-door/*
+      # diffs quote requester text). If it contains the fence markers, it could
+      # spoof the fence open inside the agent prompt — fail closed instead.
+      - name: Fence guard — refuse reviews containing fence markers
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          REVIEW_BODY: ${{ github.event.review.body }}
+        run: |
+          set -euo pipefail
+          if printf '%s' "$REVIEW_BODY" | grep -qF '<<<UNTRUSTED_REVIEW' \
+             || printf '%s' "$REVIEW_BODY" | grep -qF 'UNTRUSTED_REVIEW>>>'; then
+            gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body \
+              "🛑 Review-fix loop refused to run: the review text contains the untrusted-content fence markers (possible fence-breakout). A human must handle this round."
+            echo "::error::review body contains fence markers — refusing to build the agent prompt"
+            exit 1
+          fi
+
       - name: Loop cap — hand to a human after 3 rounds
         id: cap
         env:
@@ -44,12 +62,16 @@ jobs:
           PR: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
+          # Rounds since the reviewer's most recent APPROVED — a PR that
+          # converged earlier and regressed later starts a fresh count.
           ROUNDS=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR}/reviews" \
-            --jq '[.[] | select(.user.login=="theo-pr-reviewer[bot]" and .state=="CHANGES_REQUESTED")] | length')
+            --jq '[.[] | select(.user.login=="theo-pr-reviewer[bot]") | .state]
+                  | reverse | (index("APPROVED") // length) as $i | .[:$i]
+                  | map(select(. == "CHANGES_REQUESTED")) | length')
           echo "rounds=$ROUNDS" >> "$GITHUB_OUTPUT"
           if [ "$ROUNDS" -gt 3 ]; then
             gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body \
-              "🛑 Review-fix loop stopped after $ROUNDS rounds — this PR needs a human."
+              "🛑 Review-fix loop stopped after $ROUNDS rounds since the last approval — this PR needs a human."
             echo "capped=true" >> "$GITHUB_OUTPUT"
           else
             echo "capped=false" >> "$GITHUB_OUTPUT"
