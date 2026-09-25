@@ -16,8 +16,10 @@
 #     orchestrator subagent PRs later); theo-pr-reviewer is its *judge*.
 #     Feedback Hub's App stays in its own product lane.
 #   - Branch prefix front-door/* is an UNTRUSTED ORIGIN: auto-merge-eligible
-#     never arms it and claude-review's carve-outs hold it — the first-slice
-#     PR always waits for a human, by design (trust ladder rung 0).
+#     arms it only on a theo-pr-reviewer APPROVED review (arm-on-approval.yml)
+#     and disarms it on every new commit — review-then-green, stricter than
+#     the estate default (pitch-owner decision 2026-09-25; rung 0 retired).
+#     The review-fix loop closes findings; no human click on the happy path.
 
 name: First Slice
 
@@ -110,8 +112,8 @@ jobs:
                intent/${{ github.event.client_payload.slug }}.md.
             2. Create branch
                `front-door/first-slice-${{ github.event.client_payload.request_id }}`
-               (exactly — the prefix marks untrusted origin and is what keeps
-               this PR out of auto-merge).
+               (exactly — the prefix marks untrusted origin: this PR merges
+               only after theo-pr-reviewer approves it).
             3. Write plan/first-slice.md (files, order, tests, risks), then
                implement the SMALLEST end-to-end vertical slice that delivers
                the intent's core outcome. Follow the repo conventions; extend

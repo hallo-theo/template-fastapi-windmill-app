@@ -1,0 +1,26 @@
+# Arm-on-approval — the review-event half of auto-merge (Phase 3).
+#
+# pr.yml arms trusted-origin PRs the moment they open; agent-authored
+# front-door/* PRs (first-slice, roadmap, ticket work) arm ONLY when
+# theo-pr-reviewer submits an APPROVED review — this caller delivers that
+# event to the same reusable classifier, which also disarms on new commits
+# and on changes-requested. Kept out of pr.yml on purpose: adding
+# pull_request_review to pr.yml would re-run `ci` (skipped for that event)
+# and let a green gates-passed report on a sha the real gate never tested.
+
+name: Arm Auto-Merge
+
+on:
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  arm:
+    permissions:
+      contents: write
+      pull-requests: write
+    uses: hallo-theo/.github/.github/workflows/auto-merge-eligible.yml@main
+    secrets:
+      # Armer identity — merges as theo-pr-reviewer[bot] so push workflows
+      # (deploy!) fire; github.token merges are skipped by GitHub.
+      PR_REVIEWER_PRIVATE_KEY: ${{ secrets.PR_REVIEWER_PRIVATE_KEY }}
