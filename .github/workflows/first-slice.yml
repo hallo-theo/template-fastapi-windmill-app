@@ -100,8 +100,15 @@ jobs:
                only after theo-pr-reviewer approves it).
             3. Write plan/first-slice.md (files, order, tests, risks), then
                implement the SMALLEST end-to-end vertical slice that delivers
-               the intent's core outcome. Follow the repo conventions; extend
-               the existing api/app scaffolding rather than restructuring it.
+               the intent's core outcome. A first slice is a WALKING SKELETON,
+               not the finished app: when the intent lists several distinct
+               capabilities, build ONLY the single most central one end to
+               end and leave the rest unbuilt — after this PR merges, the
+               admin agent decomposes the remaining capabilities into worker
+               tickets (plan/roadmap.md), and work you pre-empt here robs
+               that plan of its parallelism. Follow the repo conventions;
+               extend the existing api/app scaffolding rather than
+               restructuring it.
             4. Run `make verify` and make it pass. Paste its output into the
                PR body.
             5. Commit, push, open a PR against main with `gh pr create`. Body
