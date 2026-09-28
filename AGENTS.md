@@ -95,6 +95,7 @@ here.
 | Merge only via PR with `gates-passed` green | `sdlc-floor` ruleset |
 | No personal data in `intent/` or `spec/` | PII gate in CI |
 | Prompts, tool definitions and thresholds live in the declared behaviour-bearing paths and never auto-merge | `auto-merge-eligible` classifier |
+| UI styled with the athena design tokens (`docs/DESIGN.md`) | `claude-review` blocking finding |
 
 ### Advisory (not yet enforced — say so honestly)
 
