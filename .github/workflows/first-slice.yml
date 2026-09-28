@@ -109,12 +109,18 @@ jobs:
                that plan of its parallelism. Follow the repo conventions;
                extend the existing api/app scaffolding rather than
                restructuring it.
-            4. Run `make verify` and make it pass. Paste its output into the
+            4. Any UI you build follows the org design standard (athena) —
+               read docs/DESIGN.md first: import the vendored
+               src/athena-tokens.css once and style ONLY with its :root
+               custom properties (var(--...)); no hardcoded hex colors,
+               ad-hoc px scales or invented shadows. The reviewer BLOCKS
+               divergence.
+            5. Run `make verify` and make it pass. Paste its output into the
                PR body.
-            5. Commit, push, open a PR against main with `gh pr create`. Body
+            6. Commit, push, open a PR against main with `gh pr create`. Body
                starts with `Front-Door-Request: ${{ github.event.client_payload.request_id }}`,
                links the intent and plan artifacts, then summarises the slice.
-            6. If the intent cannot be implemented safely (unclear,
+            7. If the intent cannot be implemented safely (unclear,
                contradictory, needs a decision), still open a PR containing
                only docs/front-door/${{ github.event.client_payload.request_id }}.md
                explaining what is needed — never fail silently.
