@@ -15,3 +15,19 @@ git rev-parse HEAD:plan/<slug>.md
 Without the pin, a "does the diff match the plan?" check compares the diff
 against a plan that may have been rewritten in the same commit to match it —
 passing trivially, forever.
+
+## Front-Door repos: `roadmap.md` + `tickets.json`
+
+On Front-Door-born repos this folder also holds the admin agent's build plan,
+written by `admin-decompose.yml` after the first slice merges:
+
+- `plan/roadmap.md` — the human-readable plan (mission, waves, out of scope,
+  risks).
+- `plan/tickets.json` — the machine-readable twin the Front Door ingests on
+  merge to dispatch worker agents. Schema (every field required, ≤12 tickets,
+  `blocked_by` only into lower waves) and full contract:
+  [`hallo-theo/.github → sdlc/templates/roadmap.md`](https://github.com/hallo-theo/.github/blob/main/sdlc/templates/roadmap.md).
+
+These two ride their own reviewed PR (`front-door/roadmap-*`) instead of the
+SHA-pin ritual — the roadmap PR *is* the approval artifact, and later edits
+land as visible follow-up PRs, never silent rewrites.
