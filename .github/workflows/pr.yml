@@ -59,7 +59,8 @@ jobs:
 
   # Automerge default-on (pitch-owner decision 2026-09-03): arms auto-merge on
   # every PR; it merges when gates-passed + CI are green. Carve-outs live in
-  # the reusable workflow (untrusted-origin branches; .github/** edits).
+  # the reusable workflow (feedback/* origin; .github/** edits). Agent PRs on
+  # front-door/* arm on reviewer approval instead — arm-on-approval.yml.
   auto-merge:
     permissions:
       contents: write

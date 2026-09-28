@@ -1,0 +1,42 @@
+# Fence guard — the single shared copy of the front-door dispatch validation.
+# Extracted from first-slice.yml after review caught it copy-pasted (and
+# already drifting) into admin-decompose.yml: this check is the repo's core
+# prompt-injection defense, and a security fix to it must have exactly one
+# place to land.
+name: Fence guard
+description: >
+  Fail-closed validation of a front-door repository_dispatch payload and the
+  fenced intent file. Shapes are pinned to what front-door actually freezes:
+  SLUG_RE in freeze.py, request_id = uuid4().hex[:12] in store.py. The
+  <<<UNTRUSTED_INTENT fence is written by front-door freeze.py::
+  render_intent_md — the agent prompts' injection defense depends on it, so a
+  missing fence stops the agent from running at all.
+inputs:
+  slug:
+    description: client_payload.slug
+    required: true
+  request_id:
+    description: client_payload.request_id
+    required: true
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        SLUG: ${{ inputs.slug }}
+        REQUEST_ID: ${{ inputs.request_id }}
+      run: |
+        set -euo pipefail
+        echo "$SLUG" | grep -Eq '^[a-z][a-z0-9-]{0,22}$' \
+          || { echo "::error::slug '$SLUG' does not match the frozen front-door shape"; exit 1; }
+        echo "$REQUEST_ID" | grep -Eq '^[0-9a-f]{12}$' \
+          || { echo "::error::request_id '$REQUEST_ID' does not match the frozen front-door shape"; exit 1; }
+        FILE="intent/${SLUG}.md"
+        if [ ! -f "$FILE" ]; then
+          echo "::error::$FILE missing — dispatch arrived without a frozen intent file"
+          exit 1
+        fi
+        if ! grep -qF '<<<UNTRUSTED_INTENT' "$FILE" || ! grep -qF 'UNTRUSTED_INTENT>>>' "$FILE"; then
+          echo "::error::$FILE has no <<<UNTRUSTED_INTENT fence — the injection defense depends on it (written by front-door freeze.py::render_intent_md). Refusing to run the agent."
+          exit 1
+        fi

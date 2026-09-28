@@ -67,7 +67,14 @@ Each folder's README states what its artifact must contain. `intent/` and
 addresses, IBANs, emails or phone numbers, including in pasted text. Git
 history is immutable and is copied into every clone and every agent session.
 
-The single required check to merge is `gates-passed`.
+On Front-Door-born repos the admin agent maintains `plan/roadmap.md` +
+`plan/tickets.json` (contract: `hallo-theo/.github` →
+`sdlc/templates/roadmap.md`) — the plan for everything after the first
+slice; worker tickets are dispatched from it.
+
+The single required check to merge is `gates-passed`. Agent PRs on
+`front-door/*` branches additionally merge only after a `theo-pr-reviewer`
+approval (armed by `arm-on-approval.yml`).
 
 ## CI/CD
 

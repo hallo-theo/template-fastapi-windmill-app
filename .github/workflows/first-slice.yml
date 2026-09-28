@@ -16,8 +16,10 @@
 #     orchestrator subagent PRs later); theo-pr-reviewer is its *judge*.
 #     Feedback Hub's App stays in its own product lane.
 #   - Branch prefix front-door/* is an UNTRUSTED ORIGIN: auto-merge-eligible
-#     never arms it and claude-review's carve-outs hold it — the first-slice
-#     PR always waits for a human, by design (trust ladder rung 0).
+#     arms it only on a theo-pr-reviewer APPROVED review (arm-on-approval.yml)
+#     and disarms it on every new commit — review-then-green, stricter than
+#     the estate default (pitch-owner decision 2026-09-25; rung 0 retired).
+#     The review-fix loop closes findings; no human click on the happy path.
 
 name: First Slice
 
@@ -42,28 +44,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      # One shared copy of the injection defense — .github/actions/fence-guard.
       - name: Payload + fence guard (fail closed)
-        env:
-          SLUG: ${{ github.event.client_payload.slug }}
-          REQUEST_ID: ${{ github.event.client_payload.request_id }}
-        run: |
-          set -euo pipefail
-          # Shapes pinned to what front-door actually freezes: SLUG_RE in
-          # freeze.py, request_id = uuid4().hex[:12] in store.py. Refuse
-          # anything else before it reaches a path, branch name, or prompt.
-          echo "$SLUG" | grep -Eq '^[a-z][a-z0-9-]{0,22}$' \
-            || { echo "::error::slug '$SLUG' does not match the frozen front-door shape"; exit 1; }
-          echo "$REQUEST_ID" | grep -Eq '^[0-9a-f]{12}$' \
-            || { echo "::error::request_id '$REQUEST_ID' does not match the frozen front-door shape"; exit 1; }
-          FILE="intent/${SLUG}.md"
-          if [ ! -f "$FILE" ]; then
-            echo "::error::$FILE missing — dispatch arrived without a frozen intent file"
-            exit 1
-          fi
-          if ! grep -qF '<<<UNTRUSTED_INTENT' "$FILE" || ! grep -qF 'UNTRUSTED_INTENT>>>' "$FILE"; then
-            echo "::error::$FILE has no <<<UNTRUSTED_INTENT fence — the injection defense depends on it (written by front-door freeze.py::render_intent_md). Refusing to run the agent."
-            exit 1
-          fi
+        uses: ./.github/actions/fence-guard
+        with:
+          slug: ${{ github.event.client_payload.slug }}
+          request_id: ${{ github.event.client_payload.request_id }}
 
       # The SDLC agent App, NOT theo-pr-reviewer: the PR author must be a
       # different identity than the reviewer or GitHub rejects the review.
@@ -110,8 +96,8 @@ jobs:
                intent/${{ github.event.client_payload.slug }}.md.
             2. Create branch
                `front-door/first-slice-${{ github.event.client_payload.request_id }}`
-               (exactly — the prefix marks untrusted origin and is what keeps
-               this PR out of auto-merge).
+               (exactly — the prefix marks untrusted origin: this PR merges
+               only after theo-pr-reviewer approves it).
             3. Write plan/first-slice.md (files, order, tests, risks), then
                implement the SMALLEST end-to-end vertical slice that delivers
                the intent's core outcome. Follow the repo conventions; extend
