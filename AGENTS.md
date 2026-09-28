@@ -95,12 +95,14 @@ here.
 | Merge only via PR with `gates-passed` green | `sdlc-floor` ruleset |
 | No personal data in `intent/` or `spec/` | PII gate in CI |
 | Prompts, tool definitions and thresholds live in the declared behaviour-bearing paths and never auto-merge | `auto-merge-eligible` classifier |
-| UI styled with the athena design tokens (`docs/DESIGN.md`) | `claude-review` blocking finding |
+| Agent-built UI (`front-door/*` PRs) styled with the athena design tokens (`docs/DESIGN.md`) | review-then-green: `arm-on-approval` merges agent PRs only on a `theo-pr-reviewer` approval, and token divergence is a blocking finding |
 
 ### Advisory (not yet enforced — say so honestly)
 
-*(empty — add entries here only until their enforcing check ships, then move
-them up.)*
+- UI in **human** PRs follows `docs/DESIGN.md` too — the reviewer flags
+  divergence, but nothing gates a trusted-branch merge on it yet. Graduates
+  to the enforced table when the athena design lint joins `gates-passed`
+  (Cloud Run stack work).
 
 ## Skills in use
 
