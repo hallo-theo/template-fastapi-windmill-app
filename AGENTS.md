@@ -70,7 +70,10 @@ history is immutable and is copied into every clone and every agent session.
 On Front-Door-born repos the admin agent maintains `plan/roadmap.md` +
 `plan/tickets.json` (contract: `hallo-theo/.github` →
 `sdlc/templates/roadmap.md`) — the plan for everything after the first
-slice; worker tickets are dispatched from it.
+slice. Worker agents (`agent-build.yml`) then claim tickets from the
+front-door board, build them on `front-door/tk<N>-*` branches, and stamp
+`Ticket-Complete: TK-<n>` into the final PR body — the platform marks the
+ticket done when that PR merges.
 
 The single required check to merge is `gates-passed`. Agent PRs on
 `front-door/*` branches additionally merge only after a `theo-pr-reviewer`
