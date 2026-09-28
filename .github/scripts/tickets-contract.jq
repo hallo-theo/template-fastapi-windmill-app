@@ -3,6 +3,9 @@
 # Full contract: hallo-theo/.github -> sdlc/templates/roadmap.md.
 type=="array" and length<=12
 and (map(.id) | length == (unique | length))
+# same-wave tickets run as PARALLEL workers: their areas must be disjoint
+# (the same area in DIFFERENT waves is fine — that is sequential work)
+and (group_by(.wave) | all(.[]; (map(.area) | length) == (map(.area) | unique | length)))
 and ( . as $all | all(.[];
       (.id|type=="string" and test("^TK-[0-9]+$"))
   and (.title|type=="string" and length>0)

@@ -20,6 +20,8 @@ T2='{"id":"TK-2","title":"t","description":"d","acceptance_criteria":["a"],"bloc
 
 expect "valid 2-wave file"            0 "[$T1,$T2]"
 expect "empty array is valid"         0 "[]"
+expect "same area across waves is ok" 0 '[{"id":"TK-1","title":"t","description":"d","acceptance_criteria":["a"],"blocked_by":[],"area":"api","wave":1},{"id":"TK-2","title":"t","description":"d","acceptance_criteria":["a"],"blocked_by":["TK-1"],"area":"api","wave":2}]'
+expect "same-wave same-area collides" 1 '[{"id":"TK-1","title":"t","description":"d","acceptance_criteria":["a"],"blocked_by":[],"area":"api","wave":1},{"id":"TK-2","title":"t","description":"d","acceptance_criteria":["a"],"blocked_by":[],"area":"api","wave":1}]'
 expect "forward-wave blocked_by"      1 '[{"id":"TK-1","title":"t","description":"d","acceptance_criteria":["a"],"blocked_by":["TK-2"],"area":"api","wave":1},{"id":"TK-2","title":"t","description":"d","acceptance_criteria":["a"],"blocked_by":[],"area":"app","wave":2}]'
 expect "same-wave blocked_by"         1 '[{"id":"TK-1","title":"t","description":"d","acceptance_criteria":["a"],"blocked_by":[],"area":"api","wave":1},{"id":"TK-2","title":"t","description":"d","acceptance_criteria":["a"],"blocked_by":["TK-1"],"area":"app","wave":1}]'
 expect "dangling blocked_by"          1 '[{"id":"TK-1","title":"t","description":"d","acceptance_criteria":["a"],"blocked_by":["TK-9"],"area":"api","wave":2}]'
