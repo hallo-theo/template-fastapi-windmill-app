@@ -64,7 +64,19 @@ jobs:
           fi
           jq '.ticket' "$RUNNER_TEMP/claim.json" > "$RUNNER_TEMP/ticket.json"
           TK=$(jq -r '.tk' "$RUNNER_TEMP/ticket.json")
-          echo "$TK" | grep -Eq '^TK-[0-9]+$' || { echo "::error::claimed ticket id fails shape guard"; exit 1; }
+          if ! echo "$TK" | grep -Eq '^TK-[0-9]+$'; then
+            # The remote claim already succeeded — release it INLINE before
+            # failing, or the ticket is stranded with no release step (the
+            # failure() step keys on claimed=true, which we deliberately do
+            # not write for a malformed id). Percent-encode: a shape-failing
+            # id is by definition hostile to a URL path.
+            TK_ENC=$(jq -rn --arg t "$TK" '$t|@uri')
+            curl -sf -X POST "$FD/api/queue/$SLUG/tickets/$TK_ENC/reopen" \
+              -H "X-Queue-Key: $QUEUE_KEY" >/dev/null \
+              || echo "::warning::inline release failed — the supervisor stall sweep is the backstop"
+            echo "::error::claimed ticket id fails shape guard"
+            exit 1
+          fi
           {
             echo "claimed=true"
             echo "tk=$TK"
