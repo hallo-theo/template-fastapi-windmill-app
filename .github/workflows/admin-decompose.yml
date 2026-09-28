@@ -40,25 +40,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      # One shared copy of the injection defense — .github/actions/fence-guard.
       - name: Payload + fence guard (fail closed)
-        env:
-          SLUG: ${{ github.event.client_payload.slug }}
-          REQUEST_ID: ${{ github.event.client_payload.request_id }}
-        run: |
-          set -euo pipefail
-          echo "$SLUG" | grep -Eq '^[a-z][a-z0-9-]{0,22}$' \
-            || { echo "::error::slug '$SLUG' does not match the frozen front-door shape"; exit 1; }
-          echo "$REQUEST_ID" | grep -Eq '^[0-9a-f]{12}$' \
-            || { echo "::error::request_id '$REQUEST_ID' does not match the frozen front-door shape"; exit 1; }
-          FILE="intent/${SLUG}.md"
-          if [ ! -f "$FILE" ]; then
-            echo "::error::$FILE missing — dispatch arrived without a frozen intent file"
-            exit 1
-          fi
-          if ! grep -qF '<<<UNTRUSTED_INTENT' "$FILE" || ! grep -qF 'UNTRUSTED_INTENT>>>' "$FILE"; then
-            echo "::error::$FILE has no <<<UNTRUSTED_INTENT fence — refusing to run the agent."
-            exit 1
-          fi
+        uses: ./.github/actions/fence-guard
+        with:
+          slug: ${{ github.event.client_payload.slug }}
+          request_id: ${{ github.event.client_payload.request_id }}
 
       # The SDLC agent App, NOT theo-pr-reviewer: the PR author must be a
       # different identity than the reviewer or GitHub rejects the review.
@@ -132,8 +119,9 @@ jobs:
                systems list, and anything missing is a Risks/escalations
                entry for a human, not something you work around.
             6. Run `make verify` (your diff is docs-only — it must stay
-               green) and validate plan/tickets.json with `jq` against the
-               rules in step 4.
+               green) and validate:
+               `jq -e -f .github/scripts/tickets-contract.jq plan/tickets.json`
+               (the same filter this workflow re-runs after you finish).
             7. Commit, push, open a PR against main with `gh pr create`. Body
                starts with `Front-Door-Request: ${{ github.event.client_payload.request_id }}`
                and `Front-Door-Phase: roadmap`, then summarises the waves.
@@ -168,18 +156,8 @@ jobs:
           }
           git cat-file -e "FETCH_HEAD:plan/roadmap.md" 2>/dev/null \
             || fail "plan/tickets.json exists but plan/roadmap.md is missing"
-          jq -e '
-            type=="array" and length<=12
-            and (map(.id) | length == (unique | length))
-            and ( . as $all | all(.[];
-                  (.id|type=="string" and test("^TK-[0-9]+$"))
-              and (.title|type=="string" and length>0)
-              and (.description|type=="string" and length>0)
-              and (.acceptance_criteria|type=="array" and length>0 and all(.[]; type=="string" and length>0))
-              and (.blocked_by|type=="array" and all(.[]; type=="string"))
-              and (.area|type=="string" and length>0)
-              and (.wave|type=="number" and .>=1)
-              and (.wave as $w | all(.blocked_by[]; . as $dep | any($all[]; .id==$dep and .wave<$w)))
-            ))' /tmp/tickets.json >/dev/null \
+          # Single shared copy of the contract; fixtures live next to it in
+          # .github/scripts/test-tickets-contract.sh.
+          jq -e -f .github/scripts/tickets-contract.jq /tmp/tickets.json >/dev/null \
             || fail "plan/tickets.json violates the roadmap contract"
           echo "plan/tickets.json valid: $(jq 'length' /tmp/tickets.json) ticket(s)"
