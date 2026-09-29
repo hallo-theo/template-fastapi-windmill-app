@@ -107,7 +107,11 @@ jobs:
                references ids in this file and only tickets in LOWER waves;
                tickets in the SAME wave must touch DISJOINT areas of the repo
                — they run as parallel workers, and two workers in one file is
-               a merge conflict, not a plan. Each ticket must be small enough
+               a merge conflict, not a plan. Disjoint means FILES, not
+               labels: two same-wave tickets that both edit App.tsx (or any
+               shared hotspot) WILL collide even if their areas are named
+               differently — put shared-file work in separate components or
+               separate waves. Each ticket must be small enough
                for one worker session yet complete enough that a worker who
                has read only AGENTS.md, the intent and the ticket can finish
                it. If the first slice already delivers the whole intent,
