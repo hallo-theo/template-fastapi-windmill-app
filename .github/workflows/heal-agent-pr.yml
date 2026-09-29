@@ -47,15 +47,31 @@ jobs:
             case "$BRANCH" in front-door/*) ;; *) continue ;; esac
             echo "$BRANCH" | grep -Eq '^front-door/[a-z0-9./_-]+$' || continue
             STATE=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$NUM" -q .mergeable_state)
-            FAILING=$(gh pr checks "$NUM" --repo "$GITHUB_REPOSITORY" 2>/dev/null \
-              | awk -F'\t' '$2=="fail"' | wc -l | tr -d ' ')
+            if [ "$STATE" = "unknown" ]; then
+              # GitHub computes mergeability lazily right after a main push —
+              # one short retry, or the DIRTY sweep misses fresh flips
+              sleep 10
+              STATE=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$NUM" -q .mergeable_state)
+            fi
+            # gh pr checks exits non-zero when checks fail/pend — exactly the
+            # cases we scan for; '|| true' keeps set -e out of it (its stdout
+            # still carries the count)
+            FAILING=$(gh pr checks "$NUM" --repo "$GITHUB_REPOSITORY" \
+              --json bucket --jq '[.[] | select(.bucket=="fail")] | length' || true)
+            FAILING="${FAILING:-0}"
             [ "$STATE" = "dirty" ] || [ "$STATE" = "behind" ] || [ "$FAILING" != "0" ] || continue
-            # loop cap: heal commits since the reviewer's last APPROVED
+            # loop cap: [heal] commits SINCE the reviewer's last APPROVED
+            LAST_OK=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$NUM/reviews" \
+              -q '[.[] | select(.user.login=="theo-pr-reviewer[bot]" and .state=="APPROVED")
+                   | .submitted_at] | last // ""')
             HEALS=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$NUM/commits" --paginate \
-              -q '[.[] | .commit.message] | map(select(startswith("[heal]"))) | length')
+              -q "[.[] | select(.commit.message | startswith(\"[heal]\"))
+                   | select(.commit.committer.date > \"$LAST_OK\")] | length")
             if [ "$HEALS" -ge 2 ]; then
-              gh pr comment "$NUM" --repo "$GITHUB_REPOSITORY" --body \
-                "🛑 Heal cap reached (2) — this PR needs the supervisor or a human." || true
+              POSTED=$(gh api "repos/$GITHUB_REPOSITORY/issues/$NUM/comments" --paginate \
+                -q '[.[] | select(.body | startswith("🛑 Heal cap reached"))] | length' || echo 1)
+              [ "$POSTED" = "0" ] && gh pr comment "$NUM" --repo "$GITHUB_REPOSITORY" --body \
+                "🛑 Heal cap reached (2 since the last approval) — this PR needs the supervisor or a human." || true
               continue
             fi
             NEED="$NEED $NUM:$BRANCH:$STATE:$FAILING"
