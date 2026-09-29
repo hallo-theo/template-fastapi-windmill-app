@@ -114,7 +114,10 @@ jobs:
                src/athena-tokens.css once and style ONLY with its :root
                custom properties (var(--...)); no hardcoded hex colors,
                ad-hoc px scales or invented shadows. The reviewer BLOCKS
-               divergence.
+               divergence. Read docs/PRODUCT.md too: every user-facing
+               string ships in the UI language it declares, from this very
+               first slice — retrofitting a language later costs a rework
+               wave.
             5. Run `make verify` and make it pass. Paste its output into the
                PR body.
             6. Commit, push, open a PR against main with `gh pr create`. Body
