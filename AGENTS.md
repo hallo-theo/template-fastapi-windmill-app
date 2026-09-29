@@ -83,6 +83,11 @@ approval (armed by `arm-on-approval.yml`).
 
 PR checks: `.github/workflows/pr.yml` delegates to `hallo-theo/.github/.github/workflows/python-ts-pr.yml`. Deploy: `main.yml` delegates to `python-ts-deploy.yml`. When the shared workflows need to change, edit them in `hallo-theo/.github` once and every adopting repo picks them up on the next run.
 
+Agent PRs (`front-door/*`) self-repair: `heal-agent-pr.yml` runs on every
+push to main and on PR-gate failures, merging main into dirty/behind agent
+branches and fixing red checks (`[heal]` commits, capped at 2 since the last
+approval — then the supervisor or a human takes over).
+
 ## Guardrails (enforced-only)
 
 Rules land here via PR, one row each. A rule must name the check that enforces
