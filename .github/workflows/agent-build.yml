@@ -156,6 +156,12 @@ jobs:
                docs/DESIGN.md: style ONLY with the var(--...) custom
                properties from the vendored src/athena-tokens.css; the
                reviewer BLOCKS hardcoded hex/px-soup/invented shadows.
+               Read docs/PRODUCT.md and obey it: every user-facing string
+               ships in the UI language it declares (code/comments/tests
+               stay English), and NO dead controls — if your ticket's
+               feature has no data source, cut it from the UI and record
+               the cut in the plan's risks instead of shipping a disabled
+               or always-empty element. The reviewer BLOCKS both.
                Run `make verify` and make it pass; paste its output into the
                PR body. Just before opening the PR, run
                `git fetch origin main && git merge origin/main` — siblings

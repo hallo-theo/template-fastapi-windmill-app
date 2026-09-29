@@ -101,6 +101,7 @@ here.
 | No personal data in `intent/` or `spec/` | PII gate in CI |
 | Prompts, tool definitions and thresholds live in the declared behaviour-bearing paths and never auto-merge | `auto-merge-eligible` classifier |
 | Agent-built UI (`front-door/*` PRs) styled with the athena design tokens (`docs/DESIGN.md`) | review-then-green: `arm-on-approval` merges agent PRs only on a `theo-pr-reviewer` approval, and token divergence is a blocking finding |
+| Agent-built UI (`front-door/*` PRs) obeys `docs/PRODUCT.md`: declared UI language on every user-facing string, no dead controls (disabled filters / always-empty columns) | review-then-green: the org reviewer treats both as blocking findings on UI-touching PRs |
 
 ### Advisory (not yet enforced — say so honestly)
 
