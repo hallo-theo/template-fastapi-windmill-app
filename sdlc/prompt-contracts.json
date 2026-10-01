@@ -1,0 +1,75 @@
+{
+  "comment": "Pinned prompt surface: scripts/check_prompt_surface.py fails CI when a prompt-bearing workflow changes without this manifest moving in the same PR, or stops mentioning a listed org contract. Update hashes with: scripts/check_prompt_surface.py --update",
+  "files": [
+    {
+      "path": ".github/workflows/first-slice.yml",
+      "sha256_16": "c09bf351ef0277c9",
+      "must_mention": [
+        {
+          "contract": "product standard (docs/PRODUCT.md: declared UI language, no dead controls)",
+          "pattern": "docs/PRODUCT\\.md"
+        },
+        {
+          "contract": "design standard (docs/DESIGN.md, athena)",
+          "pattern": "docs/DESIGN\\.md"
+        },
+        {
+          "contract": "athena tokens are the only styling source",
+          "pattern": "athena-tokens\\.css"
+        },
+        {
+          "contract": "verify gate before the PR",
+          "pattern": "make verify"
+        }
+      ]
+    },
+    {
+      "path": ".github/workflows/admin-decompose.yml",
+      "sha256_16": "2a3eebaa6ab47e5f",
+      "must_mention": [
+        {
+          "contract": "product standard (docs/PRODUCT.md)",
+          "pattern": "docs/PRODUCT\\.md"
+        },
+        {
+          "contract": "org roadmap contract",
+          "pattern": "sdlc/templates/roadmap\\.md"
+        },
+        {
+          "contract": "scope-cut rule (cut + record in Risks, never plan dead UI)",
+          "pattern": "scope-cut"
+        },
+        {
+          "contract": "machine-readable twin plan/tickets.json",
+          "pattern": "plan/tickets\\.json"
+        }
+      ]
+    },
+    {
+      "path": ".github/workflows/agent-build.yml",
+      "sha256_16": "b9c09d39f1b43aef",
+      "must_mention": [
+        {
+          "contract": "product standard (docs/PRODUCT.md)",
+          "pattern": "docs/PRODUCT\\.md"
+        },
+        {
+          "contract": "design standard (docs/DESIGN.md, athena tokens)",
+          "pattern": "docs/DESIGN\\.md"
+        },
+        {
+          "contract": "ticket completion stamp the Front Door tracks",
+          "pattern": "Ticket-Complete"
+        },
+        {
+          "contract": "pre-PR merge of main (sibling conflict avoidance)",
+          "pattern": "merge origin/main"
+        },
+        {
+          "contract": "verify gate before the PR",
+          "pattern": "make verify"
+        }
+      ]
+    }
+  ]
+}
