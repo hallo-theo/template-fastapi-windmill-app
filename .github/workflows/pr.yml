@@ -22,6 +22,20 @@ jobs:
       terraform-path: terraform
       dockerfile: api/Dockerfile
 
+  # The prompt-surface drift check normally runs inside the reusable ci
+  # workflow — but ci is skipped on the template repo itself (placeholder
+  # tokens), and the template is exactly where the agent prompts evolve. So
+  # it runs here, template-only; adopters skip this job (skipped passes) and
+  # get the ci-side copy instead.
+  prompt-surface:
+    if: github.repository == 'hallo-theo/template-fastapi-windmill-app'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - name: Check prompt surface against sdlc/prompt-contracts.json
+        run: python3 scripts/check_prompt_surface.py
+
   # The one required check for this repo — the whole org requires this same
   # name, which is what lets one org-level ruleset gate every repository.
   # Full rationale: hallo-theo/.github → sdlc/README.md.
@@ -31,7 +45,7 @@ jobs:
   # workflow would not run, this check would never report, and every PR would
   # sit on "Expected — waiting for status" forever.
   gates-passed:
-    needs: [ci]
+    needs: [ci, prompt-surface]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5

@@ -102,6 +102,7 @@ here.
 | Prompts, tool definitions and thresholds live in the declared behaviour-bearing paths and never auto-merge | `auto-merge-eligible` classifier |
 | Agent-built UI (`front-door/*` PRs) styled with the athena design tokens (`docs/DESIGN.md`) | review-then-green: `arm-on-approval` merges agent PRs only on a `theo-pr-reviewer` approval, and token divergence is a blocking finding |
 | Agent-built UI (`front-door/*` PRs) obeys `docs/PRODUCT.md`: declared UI language on every user-facing string, no dead controls (disabled filters / always-empty columns) | review-then-green: the org reviewer treats both as blocking findings on UI-touching PRs |
+| Agent prompts (first-slice, decompose, worker workflows) keep mentioning the org contracts and never change silently — a prompt edit must re-pin `sdlc/prompt-contracts.json` in the same PR (`scripts/check_prompt_surface.py --update`) | `prompt-surface` job in `gates-passed` (shared PR workflow; fixtures: `.github/scripts/test-prompt-surface.sh`) |
 
 ### Advisory (not yet enforced — say so honestly)
 
