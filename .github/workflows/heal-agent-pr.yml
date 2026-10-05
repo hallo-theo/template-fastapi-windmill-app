@@ -15,12 +15,17 @@
 
 name: Heal Agent PRs
 
+# claude-code-action cannot run from push/workflow_run events ("Unsupported
+# event type" — found live on beschluss-radar TK-3): those events only RELAY
+# into a repository_dispatch, where the scan and the healing agent run.
 on:
   push:
     branches: [main]
   workflow_run:
     workflows: ["PR"]
     types: [completed]
+  repository_dispatch:
+    types: [heal-agent-prs]
 
 permissions:
   contents: read
@@ -31,9 +36,31 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # push/workflow_run can't host the healing agent (unsupported event types
+  # for claude-code-action) — they only re-dispatch. GITHUB_TOKEN dispatches
+  # don't trigger workflows (GitHub anti-recursion), hence the App token.
+  relay:
+    if: >-
+      (github.event_name == 'push' || github.event.workflow_run.conclusion == 'failure')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mint agent token (SDLC agent App)
+        id: agent
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.SDLC_AGENT_APP_ID }}
+          private-key: ${{ secrets.SDLC_AGENT_PRIVATE_KEY }}
+      - name: Re-dispatch as heal-agent-prs
+        env:
+          GH_TOKEN: ${{ steps.agent.outputs.token }}
+        run: |
+          set -euo pipefail
+          gh api -X POST "repos/$GITHUB_REPOSITORY/dispatches" \
+            -f event_type=heal-agent-prs >/dev/null
+          echo "relayed ${{ github.event_name }} -> heal-agent-prs"
+
   heal:
-    # push: always sweep; workflow_run: only when the PR gate actually failed
-    if: github.event_name == 'push' || github.event.workflow_run.conclusion == 'failure'
+    if: github.event_name == 'repository_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Find agent PRs that need healing
